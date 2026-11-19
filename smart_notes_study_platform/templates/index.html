@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudySpace | Smart Notes & Study Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#"><span class="brand-icon">✦</span><span>StudySpace<small>STUDY SMARTER</small></span></a>
+    <p class="nav-label">WORKSPACE</p>
+    <a class="nav-link active" href="#overview"><span>▦</span> Overview</a>
+    <a class="nav-link" href="#notes"><span>▤</span> My Notes</a>
+    <a class="nav-link" href="#tasks"><span>✓</span> Study Planner</a>
+    <div class="sidebar-bottom">
+      <div class="tip-card"><span>✧</span><strong>Small steps every day.</strong><p>Consistency turns study goals into achievements.</p></div>
+      <div class="profile"><div class="avatar">S</div><div><strong>Student Workspace</strong><small>Personal study space</small></div></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar"><div><span class="eyebrow">YOUR PERSONAL LEARNING HUB</span><h1>Good day, student <span>✦</span></h1><p>Organise your learning. Keep your goals in sight.</p></div><div class="date-pill">◷ &nbsp; {{ today if today else "Study dashboard" }}</div></header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}{% endif %}
+    {% endwith %}
+
+    <section id="overview" class="stats-grid">
+      <article class="stat-card"><div class="stat-top"><span class="stat-icon purple">▤</span><span class="stat-caption">YOUR LIBRARY</span></div><strong>{{ note_count }}</strong><p>Saved notes</p><div class="stat-foot">Keep all your learning in one place</div></article>
+      <article class="stat-card"><div class="stat-top"><span class="stat-icon blue">✓</span><span class="stat-caption">ALL TASKS</span></div><strong>{{ total }}</strong><p>Total study tasks</p><div class="stat-foot">{{ completed }} completed so far</div></article>
+      <article class="stat-card"><div class="stat-top"><span class="stat-icon orange">◷</span><span class="stat-caption">TO DO</span></div><strong>{{ pending }}</strong><p>Pending tasks</p><div class="stat-foot">One task at a time</div></article>
+      <article class="stat-card progress-card"><div class="stat-top"><span class="stat-icon green">↗</span><span class="stat-caption">YOUR PROGRESS</span></div><strong>{{ progress }}<small>%</small></strong><p>Completion rate</p><div class="progress-track"><span style="width:{{ progress }}%"></span></div></article>
+    </section>
+
+    <section class="content-grid">
+      <div class="panel" id="notes">
+        <div class="panel-heading"><div><span class="eyebrow">KNOWLEDGE LIBRARY</span><h2>My Notes</h2><p>Capture ideas before they disappear.</p></div><span class="heading-icon">▤</span></div>
+        <form class="form-card" action="{{ url_for('add_note') }}" method="POST">
+          <div class="form-title">＋ Create a new note</div>
+          <div class="form-row"><input name="title" placeholder="Note title (e.g. Python Loops)" required><input name="subject" placeholder="Subject (e.g. Programming)" required></div>
+          <textarea name="content" rows="3" placeholder="Write your notes here..." required></textarea>
+          <button class="primary-btn" type="submit">Save note <span>↗</span></button>
+        </form>
+        <div class="section-subhead"><strong>Recent notes</strong><span>{{ note_count }} saved</span></div>
+        <div class="notes-list">
+          {% for note in notes %}
+          <article class="note-item">
+            <div class="note-mark">▤</div><div class="note-body"><div class="note-meta">{{ note.subject }} <span>• {{ note.created_at[:10] }}</span></div><h3>{{ note.title }}</h3><p>{{ note.content }}</p></div>
+            <form action="{{ url_for('delete_note', note_id=note.id) }}" method="POST" onsubmit="return confirm('Delete this note?')"><button class="icon-btn delete-btn" title="Delete note">×</button></form>
+          </article>
+          {% else %}<div class="empty-state">No notes yet. Add your first note above.</div>{% endfor %}
+        </div>
+      </div>
+
+      <div class="panel" id="tasks">
+        <div class="panel-heading"><div><span class="eyebrow">PLAN & ACHIEVE</span><h2>Study Planner</h2><p>Turn your goals into action.</p></div><span class="heading-icon">✓</span></div>
+        <form class="form-card task-form" action="{{ url_for('add_task') }}" method="POST">
+          <div class="form-title">＋ Add a study task</div>
+          <input name="title" placeholder="What do you need to study?" required>
+          <div class="form-row"><input name="subject" placeholder="Subject"><input type="date" name="due_date" aria-label="Due date"></div>
+          <div class="form-row"><select name="priority"><option>Low</option><option selected>Medium</option><option>High</option></select><button class="primary-btn" type="submit">Add task <span>＋</span></button></div>
+        </form>
+        <div class="section-subhead"><strong>Your tasks</strong><span>{{ pending }} remaining</span></div>
+        <div class="task-list">
+          {% for task in tasks %}
+          <article class="task-item {% if task.completed %}is-complete{% endif %}">
+            <form action="{{ url_for('toggle_task', task_id=task.id) }}" method="POST"><button class="check-btn" title="Toggle completion">{% if task.completed %}✓{% endif %}</button></form>
+            <div class="task-info"><h3>{{ task.title }}</h3><p>{{ task.subject }}{% if task.due_date %} · Due {{ task.due_date }}{% endif %}</p></div>
+            <span class="priority {{ task.priority|lower }}">{{ task.priority }}</span>
+            <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST"><button class="icon-btn delete-btn" title="Delete task">×</button></form>
+          </article>
+          {% else %}<div class="empty-state">Your planner is clear. Add a task to get started.</div>{% endfor %}
+        </div>
+        <div class="motivation"><span>✦</span><div><strong>Keep your momentum going!</strong><p>Every completed task is progress worth celebrating.</p></div></div>
+      </div>
+    </section>
+    <footer>StudySpace <span>•</span> Smart Notes & Study Management Platform <span>•</span> Mini Project</footer>
+  </main>
+</div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
